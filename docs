@@ -1,1 +1,199 @@
+Políticas de Ticketing Cultural
+
+Documento operativo para agente de soporte, devoluciones, accesos y observabilidad en n8n
+
+Versión: 1.0 | Uso: base documental para Tools Agent | Estado: plantilla adaptable a cada espacio cultural
+
+1. Visión general
+
+Este documento define las reglas operativas para responder consultas de ticketing cultural relacionadas con compra de entradas, reenvío de tickets, acceso a sala, cambios, cancelaciones, suspensiones y solicitudes de devolución.
+
+Su objetivo es servir como fuente documental para un agente de IA conectado en n8n. El agente puede usar esta información para orientar a la persona usuaria, pero no debe ejecutar acciones administrativas por cuenta propia salvo que el workflow tenga una herramienta específica y autorizada para hacerlo.
+
+Nota operativa: reemplazar los correos, plazos, porcentajes, pasarelas y criterios particulares por los de la organización cultural antes de usar en producción.
+
+2. Principios de atención
+
+Responder de forma clara, breve y verificable.
+
+No prometer reembolsos, cambios, reenvíos ni anulaciones si el sistema no confirma que la acción fue realizada.
+
+Distinguir entre orientar a la persona y ejecutar una acción administrativa.
+
+Escalar a revisión humana cuando falte información, exista conflicto de datos o el caso involucre dinero, identidad, accesibilidad, seguridad o reclamos formales.
+
+No solicitar datos sensibles innecesarios. No pedir contraseñas, CVV, datos completos de tarjeta, tokens privados ni códigos QR completos.
+
+Evitar lenguaje inclusivo con e, x, @ o formas no estándar cuando la actividad lo requiera. Usar redacción neutra y formal.
+
+3. Tipos de situación
+
+Situación | Definición | Tratamiento base | Escalamiento
+Evento cancelado | La función o actividad no se realiza por decisión de la sala, producción, artistas u organización. | Ofrecer orientación sobre reembolso o custodia de reserva hasta reprogramación. | Sí, siempre que la persona solicite devolución, cambio o confirmación administrativa.
+Evento suspendido | La actividad se interrumpe o no puede continuar por causa anómala, accidente, siniestro, fuerza mayor o decisión operativa. | Distinguir entre suspensión antes de iniciar y suspensión luego de iniciada. | Sí, porque puede involucrar reembolso total, parcial o reprogramación.
+Evento ejecutado | La actividad se realiza normalmente en fecha y horario previstos. | En general no corresponde devolución, salvo reglas explícitas por aviso previo. | Sí, si la persona solicita excepción, devolución o denuncia un problema de acceso.
+Problema de ticket o QR | La compra existe, pero la entrada no llegó, el QR no abre, el correo fue mal ingresado o existe error de validación. | Orientar sobre revisión de correo, spam y datos de compra. No reenviar sin herramienta autorizada. | Sí, si hay cambio de email, QR inválido, duplicación, posible fraude o datos insuficientes.
+
+4. Política para eventos cancelados
+
+Cuando un evento sea cancelado, la organización debe notificar la situación por el canal oficial de boletería. Desde la notificación, la persona que adquirió el ticket tendrá hasta 7 días corridos para responder a la propuesta informada.
+
+4.1 Opciones posibles
+
+Reembolso: devolución del importe que corresponda según la pasarela y el medio de pago utilizado.
+
+Custodia de reserva: conservación del ticket hasta que exista una fecha reprogramada.
+
+Cambio a nueva fecha: solo si la organización confirmó una reprogramación y la capacidad de sala lo permite.
+
+4.2 Datos mínimos para iniciar revisión de reembolso
+
+Número de pedido o referencia de compra.
+
+Correo usado al momento de la compra.
+
+Nombre asociado a la reserva.
+
+Comprobante de compra o reserva, si el equipo lo solicita.
+
+Datos de cuenta o billetera únicamente cuando el equipo humano confirme que corresponde procesar la devolución por transferencia.
+
+El agente no debe solicitar CBU, CVU o datos bancarios en la primera respuesta automática. Puede indicar que el equipo de boletería podrá solicitarlos si corresponde iniciar el proceso de devolución.
+
+5. Política para eventos suspendidos
+
+Cuando un evento sea suspendido, la organización debe informar por canal oficial las alternativas disponibles. La propuesta puede variar según si el espectáculo llegó a iniciar o no.
+
+5.1 Suspensión antes del inicio
+
+Si la actividad no alcanzó a iniciar, puede corresponder reembolso total o custodia de reserva hasta la reprogramación. La persona tendrá hasta 7 días corridos desde la notificación para responder la propuesta.
+
+5.2 Suspensión luego de iniciada la actividad
+
+Si la actividad comenzó y luego debió suspenderse, la organización puede ofrecer reembolso parcial, cupón equivalente, cambio de fecha o custodia de reserva. El porcentaje o monto parcial debe ser definido y comunicado por el equipo humano. Como referencia operativa, una propuesta parcial puede alcanzar hasta el 70% del valor del ticket, salvo que la política específica del evento indique otra cosa.
+
+El agente no debe calcular ni confirmar el monto parcial. Debe informar que el equipo revisará el caso según la causa de suspensión y la política aplicable.
+
+6. Política para eventos ejecutados
+
+Los eventos realizados en normal funcionamiento no tienen devolución automática. Si la persona no asiste, llega tarde o decide no concurrir, no corresponde reembolso salvo que exista una regla especial comunicada por la organización.
+
+6.1 Aviso previo de no asistencia
+
+La persona puede solicitar revisión de cancelación con hasta 72 horas de anticipación al día del evento. La solicitud debe realizarse por el canal oficial de boletería e incluir número de pedido, correo de compra y nombre asociado a la reserva.
+
+Si el ticket fue adquirido dentro de las 72 horas previas al evento, no corresponde devolución salvo que la organización informe una excepción específica.
+
+6.2 Tasas y costos de pasarela
+
+Cuando corresponda un reembolso, pueden descontarse impuestos, comisiones, tasas de servicio o costos no recuperables de pasarelas de pago. La acreditación puede depender del medio de pago, banco, billetera o fecha de cierre de tarjeta.
+
+7. Reenvío de entrada, correo y QR
+
+Ante consultas como “pagué pero no me llegó la entrada”, el agente debe orientar sin confirmar acciones que no ejecutó.
+
+Sugerir revisar Spam, Promociones, Correo no deseado y bandejas secundarias.
+
+Pedir número de pedido y correo usado en la compra si no fueron informados.
+
+No mostrar ni solicitar QR completo en conversación abierta.
+
+No afirmar “reenviamos tu entrada” si no existe una herramienta integrada que haya ejecutado el reenvío.
+
+Escalar a revisión humana si el correo fue ingresado incorrectamente, si el pedido figura pago pero sin ticket, si hay QR inválido o si existen múltiples compras asociadas.
+
+8. Acceso a sala y llegada tarde
+
+El ingreso está sujeto a la política de sala, aforo, horario de función y condiciones informadas para cada evento.
+
+Una vez iniciada la función, el ingreso puede no estar permitido o quedar sujeto a autorización de sala.
+
+El agente no debe garantizar acceso tardío si la política del evento no lo confirma.
+
+Si la persona informa una necesidad de accesibilidad, movilidad reducida o acompañamiento, el caso debe escalarse para atención humana.
+
+9. Reglas para el agente de IA
+
+9.1 Casos que puede responder automáticamente
+
+Información general sobre cómo revisar una entrada no recibida.
+
+Explicación general de política de cancelaciones, suspensiones y eventos ejecutados.
+
+Orientación sobre datos mínimos necesarios para que el equipo revise un caso.
+
+Indicaciones de contacto con boletería oficial.
+
+Aclaración de que una acción administrativa requiere revisión humana.
+
+9.2 Casos que debe escalar
+
+Devoluciones, reembolsos totales o parciales.
+
+Cambios de fecha o titularidad de entrada.
+
+Reenvío efectivo de ticket o modificación de correo.
+
+QR inválido, duplicado, rechazado o posible fraude.
+
+Pedidos pagados sin ticket generado.
+
+Reclamos por suspensión, cancelación, accesibilidad o ingreso denegado.
+
+Cualquier caso con datos contradictorios o información insuficiente.
+
+9.3 Acciones prohibidas
+
+No aprobar reembolsos.
+
+No confirmar transferencias.
+
+No cancelar tickets.
+
+No cambiar titularidad.
+
+No modificar fechas.
+
+No reenviar entradas si no hay herramienta autorizada conectada.
+
+No solicitar contraseñas, CVV, datos completos de tarjeta, tokens privados ni QR completos.
+
+No inventar políticas, fechas, importes, porcentajes ni plazos.
+
+10. Descripción semántica recomendada para la herramienta en n8n
+
+Usar esta descripción dentro del campo Description de la herramienta Google Docs, Google Drive, Notion o base documental conectada al AI Agent:
+
+Descripción de herramienta: Consultar esta herramienta cuando la consulta del usuario requiera validar políticas de ticketing cultural, devoluciones, reembolsos, cancelaciones, suspensiones, reprogramaciones, reenvío de entradas, problemas de QR, ingreso a sala, llegada tarde, cambios de fecha, datos necesarios para revisión de boletería o criterios de escalamiento humano. La herramienta debe usarse antes de responder cuando la consulta involucre dinero, acceso, modificación de reserva, cambio de titularidad, ticket no recibido, QR inválido o cualquier reclamo operativo. No usar la herramienta para saludos simples, despedidas o preguntas generales que no involucren política de ticketing. La herramienta contiene reglas operativas, no ejecuta acciones. Si la política no cubre el caso, el agente debe escalar a revisión humana y no inventar una solución.
+
+11. Formato de respuesta recomendado para el agente
+
+El agente debe responder con lenguaje natural y, cuando el workflow lo requiera, devolver también una estructura operativa para observabilidad.
+
+Respuesta al usuario: breve, clara y sin placeholders internos como [CLIENTE], [ORDER_ID] o [EMAIL_PROTEGIDO].
+
+Clasificación: ticket_not_received, refund_request, cancellation, suspension, access_issue, qr_issue, schedule_question, general_policy_question, unknown.
+
+Requiere revisión humana: true o false.
+
+Motivo de decisión: una frase breve.
+
+Acción sugerida: orientar, solicitar datos mínimos, escalar, no responder automáticamente.
+
+12. Canales oficiales
+
+Canal de boletería: boleteria@ejemplo-cultural.com
+
+Horario de atención sugerido: días hábiles de 10:00 a 18:00, salvo que la organización indique otro horario.
+
+Este correo debe reemplazarse por el canal real de la organización antes de publicar o conectar el documento al agente.
+
+13. Casos de prueba para validación
+
+Caso | Mensaje de prueba | Resultado esperado | Debe usar herramienta
+Ticket no recibido | Pagué mi entrada pero no me llegó el mail con el QR. | Orientar revisión de correo, pedir datos mínimos si faltan y no afirmar reenvío. | Sí
+Devolución | Quiero que me devuelvan el dinero de mi entrada. | Explicar que requiere revisión humana y no aprobar reembolso. | Sí
+Evento cancelado | Me avisaron que se canceló la función, ¿qué opciones tengo? | Informar opciones generales: reembolso, custodia o reprogramación. | Sí
+Saludo simple | Hola. | Responder saludo sin consultar política. | No
+
 
