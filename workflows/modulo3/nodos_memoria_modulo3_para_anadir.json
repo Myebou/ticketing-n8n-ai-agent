@@ -1,0 +1,460 @@
+{
+  "name": "nodos_memoria_modulo3_para_anadir_al_manager",
+  "description": "Nodos nuevos para añadir conceptualmente al Manager M2: Airtable Search, IF memoria, Create inicial, contexto normalizado, summarization y persistencia final.",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "REEMPLAZAR_BASE_AIRTABLE",
+          "mode": "list",
+          "cachedResultName": "Ticketing Cultural — Memoria",
+          "cachedResultUrl": "https://airtable.com/REEMPLAZAR_BASE_AIRTABLE"
+        },
+        "table": {
+          "__rl": true,
+          "value": "REEMPLAZAR_TABLA_MEMORIA_TICKETING",
+          "mode": "list",
+          "cachedResultName": "Memoria_Ticketing",
+          "cachedResultUrl": "https://airtable.com/REEMPLAZAR_BASE_AIRTABLE/REEMPLAZAR_TABLA_MEMORIA_TICKING"
+        },
+        "filterByFormula": "={{ \"{Session_ID} = '\" + $json.session_id + \"'\" }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -540,
+        0
+      ],
+      "id": "81fea648-78a8-4243-97eb-cb13da9a9747",
+      "name": "Airtable — Buscar memoria por Session_ID",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REEMPLAZAR_CREDENCIAL_AIRTABLE",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "49646ae9-5218-4fb9-888a-8100acaf4f6a",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -300,
+        0
+      ],
+      "id": "9e7c7e8f-12a9-468c-8bd4-32d026d50c30",
+      "name": "IF — ¿Existe memoria previa?"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "REEMPLAZAR_BASE_AIRTABLE",
+          "mode": "list",
+          "cachedResultName": "Ticketing Cultural — Memoria",
+          "cachedResultUrl": "https://airtable.com/REEMPLAZAR_BASE_AIRTABLE"
+        },
+        "table": {
+          "__rl": true,
+          "value": "REEMPLAZAR_TABLA_MEMORIA_TICKETING",
+          "mode": "list",
+          "cachedResultName": "Memoria_Ticketing",
+          "cachedResultUrl": "https://airtable.com/REEMPLAZAR_BASE_AIRTABLE/REEMPLAZAR_TABLA_MEMORIA_TICKING"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Session_ID": "={{ $('Determinístico — Normalizar entrada mínima').first().json.session_id }}",
+            "Fecha de Actualización": "={{ $now }}",
+            "Resumen Consolidado": "Sesión nueva sin resumen histórico previo.",
+            "Estado del Caso": "nuevo",
+            "Datos Clave": "{}",
+            "Cantidad Intercambios": "1",
+            "Ultima Intencion": "sin_clasificar",
+            "Ultimo Worker": "none",
+            "Requiere Humano": false,
+            "Request_ID Ultimo": "={{ $('Determinístico — Normalizar entrada mínima').first().json.request_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -40,
+        190
+      ],
+      "id": "aa481af0-d453-4320-9e6b-df58e42ac9c7",
+      "name": "Airtable — Crear memoria inicial",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REEMPLAZAR_CREDENCIAL_AIRTABLE",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $input.first().json || {};\nconst original = $('Determinístico — Normalizar entrada mínima').first().json || {};\nconst fields = source.fields || {};\n\nfunction parseObject(value) {\n  if (!value) return {};\n  if (typeof value === 'object') return value;\n  try { return JSON.parse(value); } catch (e) { return { raw: String(value) }; }\n}\n\nconst messageCount = Number(fields['Cantidad Intercambios'] || fields.message_count || 0);\n\nreturn [{\n  json: {\n    ...original,\n    memory_record_id: source.id || null,\n    long_term_memory: {\n      exists: Boolean(source.id && fields['Session_ID']),\n      session_id: fields['Session_ID'] || original.session_id,\n      user_name: fields['Nombre Usuario'] || null,\n      case_status: fields['Estado del Caso'] || 'nuevo',\n      last_summary: fields['Resumen Consolidado'] || 'No existe resumen previo para esta sesión.',\n      key_data: parseObject(fields['Datos Clave']),\n      message_count: messageCount,\n      last_intent: fields['Ultima Intencion'] || null,\n      last_worker: fields['Ultimo Worker'] || null,\n      requires_human: Boolean(fields['Requiere Humano'] || false),\n      last_request_id: fields['Request_ID Ultimo'] || null\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        0
+      ],
+      "id": "fbb4d490-1345-4914-892b-5ebaed907e98",
+      "name": "Memoria — Contexto persistente normalizado"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "744321ca-504a-42a1-a55c-3eeedb2ed7ca",
+              "leftValue": "={{ $json.should_summarize }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1690,
+        0
+      ],
+      "id": "47394ca5-c251-44b1-8438-5dc8e82f767d",
+      "name": "IF — ¿Supera 5 intercambios?"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ `Mensaje actual del usuario:\n${$('Memoria — Contexto persistente normalizado').first().json.user_message}\n\nRespuesta final del Worker:\n${$json.response}\n\nResumen consolidado previo:\n${$json.long_term_memory?.last_summary || 'No existe resumen previo.'}\n\nEstado actual del caso:\n${$json.long_term_memory?.case_status || 'nuevo'}\n\nIntención clasificada:\n${$json.intent}\n\nWorker invocado:\n${$json.selected_worker}\n\nRequiere humano:\n${$json.requires_human}` }}",
+        "options": {
+          "systemMessage": "Sos un módulo de summarization para memoria persistente de un sistema de soporte de ticketing cultural.\n\nTu tarea es convertir el contexto de la sesión en un objeto JSON breve, limpio y reutilizable por futuros agentes.\n\nNo respondas al usuario.\nNo redactes mensajes conversacionales.\nNo incluyas HTML.\nNo incluyas logs técnicos.\nNo incluyas transcripciones completas.\nNo incluyas datos sensibles como tarjetas, CVV, contraseñas, tokens, documentos personales ni QR completos.\nNo inventes información.\nNo agregues campos fuera del esquema.\n\nEntrada disponible:\n- Mensaje actual del usuario.\n- Respuesta final generada por el Worker.\n- Resumen consolidado previo, si existe.\n- Estado actual del caso.\n- Intención clasificada.\n- Worker invocado.\n\nDevolvé exclusivamente JSON válido con esta estructura:\n\n{\n  \"asunto_principal\": \"string\",\n  \"puntos_clave\": [\"string\"],\n  \"accion_requerida\": \"string\",\n  \"estado_del_caso\": \"nuevo | en_proceso | requiere_revision | finalizado\",\n  \"datos_clave\": {\n    \"intencion\": \"VENTA | POSTVENTA | RECLAMO\",\n    \"worker_invocado\": \"string\",\n    \"requiere_humano\": true\n  }\n}\n\nReglas:\n- El resumen debe ser acumulativo: conservar información útil del resumen previo y sumar solo datos nuevos relevantes.\n- Los puntos clave deben ser accionables.\n- La acción requerida debe indicar el próximo paso operativo.\n- Si el caso involucra reembolso, devolución, QR inválido, ticket no recibido, cancelación o suspensión, usar estado_del_caso = \"requiere_revision\" salvo que el Worker indique resolución confirmada.\n- Si no hay información suficiente, usar accion_requerida = \"solicitar_datos_minimos\".\n- La salida debe ser únicamente JSON válido, sin Markdown ni explicación adicional.",
+          "maxIterations": 3,
+          "returnIntermediateSteps": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1940,
+        -160
+      ],
+      "id": "601c1dbb-e967-4a8e-a437-268b438685dd",
+      "name": "LLM mini — Generar resumen consolidado",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1940,
+        100
+      ],
+      "id": "61ddeaed-90ee-4b66-bac7-cf6aac3b39f0",
+      "name": "OpenAI Chat Model — Summarization económico",
+      "credentials": {
+        "openAiApi": {
+          "id": "REEMPLAZAR_CREDENCIAL_OPENAI",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nconst base = $('Observabilidad — Integrar resultado worker').first().json || {};\nconst raw = item.output || item.text || item.response || item;\n\nfunction safeParse(value) {\n  if (typeof value === 'object') return value;\n  const cleaned = String(value || '{}').replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/```$/i, '').trim();\n  try { return JSON.parse(cleaned); } catch (e) {\n    return {\n      asunto_principal: base.intent || 'UNKNOWN',\n      puntos_clave: [base.response || 'Sin resumen generado por el modelo.'],\n      accion_requerida: base.next_action || 'revision_humana',\n      estado_del_caso: base.requires_human ? 'requiere_revision' : 'en_proceso',\n      datos_clave: {\n        intencion: base.intent || 'UNKNOWN',\n        worker_invocado: base.selected_worker || 'none',\n        requiere_humano: Boolean(base.requires_human)\n      }\n    };\n  }\n}\n\nconst parsed = safeParse(raw);\n\nreturn [{ json: {\n  ...base,\n  summary_payload: parsed,\n  summary_mode: 'llm_mini_after_5_interactions',\n  memory_update: {\n    resumen_consolidado: `${parsed.asunto_principal}. ${Array.isArray(parsed.puntos_clave) ? parsed.puntos_clave.join(' ') : ''}`.trim(),\n    estado_del_caso: parsed.estado_del_caso || (base.requires_human ? 'requiere_revision' : 'en_proceso'),\n    datos_clave: parsed.datos_clave || {},\n    accion_requerida: parsed.accion_requerida || base.next_action\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2190,
+        -160
+      ],
+      "id": "411233f4-7efc-436f-9c84-52df916f924d",
+      "name": "Memoria — Normalizar resumen JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $input.first().json || {};\nconst previous = base.long_term_memory || {};\nconst priorKeyData = previous.key_data || {};\n\nconst datosClave = {\n  ...priorKeyData,\n  intencion: base.intent,\n  worker_invocado: base.selected_worker,\n  requiere_humano: Boolean(base.requires_human),\n  ultimo_request_id: base.request_id\n};\n\nreturn [{ json: {\n  ...base,\n  summary_mode: 'minimal_update_under_threshold',\n  memory_update: {\n    resumen_consolidado: previous.last_summary || `Consulta ${base.intent} procesada por ${base.selected_worker}.`,\n    estado_del_caso: base.requires_human ? 'requiere_revision' : (previous.case_status || 'en_proceso'),\n    datos_clave: datosClave,\n    accion_requerida: base.next_action || 'sin_accion'\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1940,
+        180
+      ],
+      "id": "92e5cef4-9637-42ff-9a37-725c86f266dd",
+      "name": "Memoria — Actualización mínima sin summarization"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "REEMPLAZAR_BASE_AIRTABLE",
+          "mode": "list",
+          "cachedResultName": "Ticketing Cultural — Memoria",
+          "cachedResultUrl": "https://airtable.com/REEMPLAZAR_BASE_AIRTABLE"
+        },
+        "table": {
+          "__rl": true,
+          "value": "REEMPLAZAR_TABLA_MEMORIA_TICKETING",
+          "mode": "list",
+          "cachedResultName": "Memoria_Ticketing",
+          "cachedResultUrl": "https://airtable.com/REEMPLAZAR_BASE_AIRTABLE/REEMPLAZAR_TABLA_MEMORIA_TICKING"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Session_ID": "={{ $json.session_id }}",
+            "Fecha de Actualización": "={{ $now }}",
+            "Resumen Consolidado": "={{ $json.memory_update.resumen_consolidado }}",
+            "Estado del Caso": "={{ $json.memory_update.estado_del_caso }}",
+            "Datos Clave": "={{ JSON.stringify($json.memory_update.datos_clave) }}",
+            "Cantidad Intercambios": "={{ $json.message_count_current }}",
+            "Ultima Intencion": "={{ $json.intent }}",
+            "Ultimo Worker": "={{ $json.selected_worker }}",
+            "Requiere Humano": "={{ $json.requires_human }}",
+            "Request_ID Ultimo": "={{ $json.request_id }}"
+          },
+          "matchingColumns": [
+            "Session_ID"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2460,
+        20
+      ],
+      "id": "02e5efb8-bee5-4e10-a294-7caa63de03f6",
+      "name": "Airtable — Persistir memoria por Session_ID",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REEMPLAZAR_CREDENCIAL_AIRTABLE",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Determinístico — Normalizar entrada mínima": {
+      "main": [
+        [
+          {
+            "node": "Airtable — Buscar memoria por Session_ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable — Buscar memoria por Session_ID": {
+      "main": [
+        [
+          {
+            "node": "IF — ¿Existe memoria previa?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — ¿Existe memoria previa?": {
+      "main": [
+        [
+          {
+            "node": "Memoria — Contexto persistente normalizado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable — Crear memoria inicial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable — Crear memoria inicial": {
+      "main": [
+        [
+          {
+            "node": "Memoria — Contexto persistente normalizado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria — Contexto persistente normalizado": {
+      "main": [
+        [
+          {
+            "node": "AI Agent — Orquestador VENTA POSTVENTA RECLAMO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Observabilidad — Integrar resultado worker": {
+      "main": [
+        [
+          {
+            "node": "IF — ¿Supera 5 intercambios?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — ¿Supera 5 intercambios?": {
+      "main": [
+        [
+          {
+            "node": "LLM mini — Generar resumen consolidado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Memoria — Actualización mínima sin summarization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model — Summarization económico": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM mini — Generar resumen consolidado",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM mini — Generar resumen consolidado": {
+      "main": [
+        [
+          {
+            "node": "Memoria — Normalizar resumen JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria — Normalizar resumen JSON": {
+      "main": [
+        [
+          {
+            "node": "Airtable — Persistir memoria por Session_ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria — Actualización mínima sin summarization": {
+      "main": [
+        [
+          {
+            "node": "Airtable — Persistir memoria por Session_ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable — Persistir memoria por Session_ID": {
+      "main": [
+        [
+          {
+            "node": "Gmail — Log de trazabilidad Manager",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond — Resultado Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
