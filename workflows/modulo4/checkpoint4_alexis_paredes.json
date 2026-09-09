@@ -1,0 +1,679 @@
+{
+  "name": "checkpoint4_alexis_paredes",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "readStatus": "unread"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1900,
+        -100
+      ],
+      "id": "e175e528-e088-4b76-8c9a-6631cb30a649",
+      "name": "Gmail Trigger — Email entrante soporte"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const item = $input.first().json || {};\nconst subject = String(item.subject || item.headers?.subject || '').trim();\nconst fromRaw = String(item.from || item.headers?.from || item.sender || '').trim();\nconst bodyText = String(item.textPlain || item.text || item.snippet || item.body || '').trim();\nconst emailMatch = fromRaw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i);\nconst fromEmail = emailMatch ? emailMatch[0].toLowerCase() : '';\nconst requestId = item.id || item.messageId || `MOD4-${Date.now()}`;\nconst sessionId = fromEmail ? `email-${fromEmail}` : `email-${requestId}`;\nreturn [{ json: {\n  request_id: requestId,\n  session_id: sessionId,\n  channel: 'gmail',\n  from_email: fromEmail,\n  subject,\n  user_message: bodyText || subject,\n  original_message_id: item.id || item.messageId || null,\n  received_at: new Date().toISOString()\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1660,
+        -100
+      ],
+      "id": "8226419a-84d9-420d-b927-d8a49af27474",
+      "name": "Set — Normalizar email entrante"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f5fed8a5-c9fc-48dd-ae73-c0de8574335a",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "auto-reply",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "614b50f2-f902-4e8f-88c8-6f05a85d4ee3",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "out of office",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "1641e967-9f54-4215-a9c9-b1f42e824c77",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "undeliverable",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "284bccc5-f362-429c-8f77-29684e13bb36",
+              "leftValue": "={{ $json.from_email }}",
+              "rightValue": "no-reply@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "0fdc1d06-9fe5-4e4a-a8d8-2b49735ff578",
+              "leftValue": "={{ $json.from_email }}",
+              "rightValue": "noreply@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "fddbee68-677d-43cd-ab70-1fb83fd43078",
+              "leftValue": "={{ $json.from_email }}",
+              "rightValue": "mailer-daemon",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1420,
+        -100
+      ],
+      "id": "f772ae54-0351-43cd-9d0a-4a426ec715be",
+      "name": "IF — Anti auto-reply y no-reply"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"status\": \"ignored_auto_reply\",\n  \"request_id\": \"{{$json.request_id}}\",\n  \"session_id\": \"{{$json.session_id}}\",\n  \"reason\": \"Respuesta automática, rebote o no-reply. Se corta el flujo para evitar bucles.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1180,
+        -300
+      ],
+      "id": "1c6b1148-8107-4307-ab6a-433778f845f6",
+      "name": "Stop — Corta bucle automático"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"request_id\": \"{{$json.request_id}}\",\n  \"session_id\": \"{{$json.session_id}}\",\n  \"from_email\": \"{{$json.from_email}}\",\n  \"subject\": \"{{$json.subject}}\",\n  \"user_message\": \"{{$json.user_message}}\",\n  \"channel\": \"gmail\",\n  \"original_message_id\": \"{{$json.original_message_id}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1180,
+        0
+      ],
+      "id": "7307ba1a-991f-4ad8-8d61-aead65e43ab6",
+      "name": "Set — Payload limpio soporte"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "mode": "list",
+          "value": "REEMPLAZAR_BASE_AIRTABLE",
+          "cachedResultName": "Ticketing Cultural — Memoria"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "REEMPLAZAR_TABLA_MEMORIA",
+          "cachedResultName": "Memoria_Ticketing"
+        },
+        "filterByFormula": "={{\"{Session_ID}='\" + $json.session_id + \"'\"}}",
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -940,
+        0
+      ],
+      "id": "d646c488-e6ed-48d7-ad80-9443516402f3",
+      "name": "Airtable — Buscar memoria por Session_ID",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const clean = $('Set — Payload limpio soporte').first().json;\nconst records = $input.all().map(i => i.json).filter(r => r && r.id);\nconst first = records[0] || null;\nconst fields = first?.fields || {};\nlet keyData = {};\ntry { keyData = fields['Datos Clave'] ? JSON.parse(fields['Datos Clave']) : {}; }\ncatch (e) { keyData = { raw: fields['Datos Clave'] }; }\nreturn [{ json: {\n  ...clean,\n  memory: {\n    exists: !!first,\n    record_id: first?.id || null,\n    last_summary: fields['Resumen Consolidado'] || '',\n    case_status: fields['Estado del Caso'] || 'nuevo',\n    key_data: keyData,\n    exchange_count: Number(fields['Cantidad Intercambios'] || 0)\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -700,
+        0
+      ],
+      "id": "7ea46a38-f0cd-46e6-bf60-5f857d156633",
+      "name": "Memoria — Normalizar contexto persistente"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Mensaje del usuario:\n{{$json.user_message}}\n\n[INICIO DE CONTEXTO COMPARTIDO]\nSession_ID: {{$json.session_id}}\nEstado previo: {{$json.memory.case_status}}\nResumen previo: {{$json.memory.last_summary || 'No existe resumen previo.'}}\nDatos clave: {{JSON.stringify($json.memory.key_data || {})}}\n[FIN DEL CONTEXTO COMPARTIDO]",
+        "options": {
+          "systemMessage": "# ROL\n\nSos el Manager de un sistema multi-agente de soporte para ticketing cultural ficticio.\n\n# OBJETIVO\n\nClasificás el mensaje entrante y generás una respuesta breve para borrador humano en Gmail.\n\n# TAXONOMÍA\n\nSolo podés clasificar en: VENTA, POSTVENTA o RECLAMO.\n\n# REGLAS\n\nNo inventes políticas, precios, fechas ni acciones administrativas. No confirmes reembolsos, reenvíos ni cambios de ticket. Si falta información, solicitá datos mínimos. Si hay reclamo, devolución, ticket no recibido, QR inválido, cancelación o suspensión, marcá requires_human=true.\n\n# FORMATO DE SALIDA\n\nDevolvé exclusivamente JSON válido:\n\n{\"intent\":\"VENTA | POSTVENTA | RECLAMO\",\"selected_worker\":\"worker_venta_cultural | worker_postventa_reclamos\",\"requires_human\":true,\"priority\":\"low | medium | high\",\"draft_response\":\"texto para borrador Gmail\",\"routing_reason\":\"motivo breve\"}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -440,
+        0
+      ],
+      "id": "9455dd48-92cf-4069-a879-72c497c23c38",
+      "name": "AI Agent — Manager integraciones"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -500,
+        220
+      ],
+      "id": "0b389a38-9f12-4600-83f2-5fe561418c33",
+      "name": "OpenAI Chat Model — Manager"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const context = $('Memoria — Normalizar contexto persistente').first().json;\nlet raw = $input.first().json.output ?? $input.first().json.text ?? $input.first().json;\nlet parsed = raw;\nif (typeof raw === 'string') {\n  try { parsed = JSON.parse(raw); }\n  catch (e) { parsed = { intent:'RECLAMO', selected_worker:'worker_postventa_reclamos', requires_human:true, priority:'medium', draft_response:raw, routing_reason:'Salida no JSON; revisión humana.' }; }\n}\nreturn [{ json: {\n  ...context,\n  intent: parsed.intent || 'RECLAMO',\n  selected_worker: parsed.selected_worker || 'worker_postventa_reclamos',\n  requires_human: Boolean(parsed.requires_human),\n  priority: parsed.priority || 'medium',\n  response: parsed.draft_response || parsed.response || 'El caso requiere revisión del equipo.',\n  routing_reason: parsed.routing_reason || ''\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "b2f9d5dc-23eb-4da1-a0e7-020ac09374f3",
+      "name": "Normalizar salida del Manager"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"request_id\": \"{{$json.request_id}}\",\n  \"session_id\": \"{{$json.session_id}}\",\n  \"email\": \"{{$json.from_email}}\",\n  \"subject\": \"{{$json.subject}}\",\n  \"intent\": \"{{$json.intent}}\",\n  \"selected_worker\": \"{{$json.selected_worker}}\",\n  \"requires_human\": {{$json.requires_human}},\n  \"priority\": \"{{$json.priority}}\",\n  \"response\": \"{{$json.response}}\",\n  \"routing_reason\": \"{{$json.routing_reason}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        100,
+        0
+      ],
+      "id": "5f760db1-0664-4549-a0f4-befd3c6ac525",
+      "name": "Set — Payload mínimo integraciones"
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "search",
+        "filterGroupsUi": {
+          "filterGroupsValues": [
+            {
+              "filtersUi": {
+                "filterValues": [
+                  {
+                    "propertyName": "email",
+                    "operator": "EQ",
+                    "value": "={{ $json.email }}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        360,
+        0
+      ],
+      "id": "f3b7a5a2-97e4-4a25-afbd-09e16ef1433b",
+      "name": "HubSpot — Look up contacto por email",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "88320222-776b-44a9-bd2f-562d500fdcdd",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        620,
+        0
+      ],
+      "id": "bd0f309c-b7bc-44f2-84d2-c178c9e38593",
+      "name": "IF — ¿Existe contacto CRM?"
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "update",
+        "contactId": "={{ $json.id }}",
+        "updateFields": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -120
+      ],
+      "id": "2f6daf8c-608b-418b-8e59-8c0e01bf5360",
+      "name": "HubSpot — Update contacto existente",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "create",
+        "email": "={{ $('Set — Payload mínimo integraciones').first().json.email }}",
+        "additionalFields": {
+          "firstName": "Cliente",
+          "lastName": "Demo"
+        }
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        140
+      ],
+      "id": "830f995b-2e4d-4af3-8644-f980f57143d2",
+      "name": "HubSpot — Create contacto nuevo",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"slack_text\": \"Nuevo caso ticketing | Request: {{$('Set — Payload mínimo integraciones').first().json.request_id}} | Sesión: {{$('Set — Payload mínimo integraciones').first().json.session_id}} | Intención: {{$('Set — Payload mínimo integraciones').first().json.intent}} | Prioridad: {{$('Set — Payload mínimo integraciones').first().json.priority}} | Requiere humano: {{$('Set — Payload mínimo integraciones').first().json.requires_human}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1140,
+        0
+      ],
+      "id": "1a1db6b1-374b-462f-b232-2a88301d518a",
+      "name": "Set — Payload limpio Slack"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "REEMPLAZAR_CANAL_SLACK",
+          "mode": "list",
+          "cachedResultName": "operaciones-ticketing"
+        },
+        "text": "={{ $json.slack_text }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1400,
+        0
+      ],
+      "id": "f6dfd97f-da80-4007-a0cb-eb45dd45e7c0",
+      "name": "Slack — Notificar operaciones",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{$('Set — Payload mínimo integraciones').first().json.subject || 'Consulta de ticketing'}}",
+        "message": "={{ $('Set — Payload mínimo integraciones').first().json.response }}",
+        "options": {
+          "sendTo": "={{ $('Set — Payload mínimo integraciones').first().json.email }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1660,
+        0
+      ],
+      "id": "bfccb8e4-b640-42bc-9d9b-bc57f1dc97b1",
+      "name": "Gmail — Create Draft respuesta HITL",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"status\": \"processed\",\n  \"request_id\": \"{{$('Set — Payload mínimo integraciones').first().json.request_id}}\",\n  \"session_id\": \"{{$('Set — Payload mínimo integraciones').first().json.session_id}}\",\n  \"intent\": \"{{$('Set — Payload mínimo integraciones').first().json.intent}}\",\n  \"crm_lookup_before_create\": true,\n  \"gmail_draft_created\": true,\n  \"slack_notified\": true,\n  \"human_in_the_loop\": true,\n  \"privacy_note\": \"Solo se enviaron campos mínimos. No se enviaron binarios ni payloads completos.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1920,
+        0
+      ],
+      "id": "539b2dd2-6637-4066-ac0f-00131d7edcfb",
+      "name": "Resultado — Auditoría Módulo 4"
+    },
+    {
+      "parameters": {
+        "content": "## Módulo 4 — Integraciones externas\\n\\nGmail + HubSpot + Slack con controles no-code.\\n\\nCaso académico ficticio: Ticketing Cultural AI.",
+        "height": 240,
+        "width": 500,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1900,
+        -500
+      ],
+      "id": "49347ab4-9bd4-4f9f-9f09-e5448b97d12e",
+      "name": "Nota — Contexto Módulo 4"
+    },
+    {
+      "parameters": {
+        "content": "## Guardrails evaluables\\n\\n① IF anti auto-reply/no-reply.\\n② Look up CRM antes de Create.\\n③ Gmail Create Draft como HITL.\\n④ Set de payload mínimo antes de integraciones.",
+        "height": 260,
+        "width": 520,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        280,
+        -460
+      ],
+      "id": "a4cfbc7a-7711-459a-8ceb-83e93be38f1a",
+      "name": "Nota — Rúbrica Módulo 4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger — Email entrante soporte": {
+      "main": [
+        [
+          {
+            "node": "Set — Normalizar email entrante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set — Normalizar email entrante": {
+      "main": [
+        [
+          {
+            "node": "IF — Anti auto-reply y no-reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — Anti auto-reply y no-reply": {
+      "main": [
+        [
+          {
+            "node": "Stop — Corta bucle automático",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set — Payload limpio soporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set — Payload limpio soporte": {
+      "main": [
+        [
+          {
+            "node": "Airtable — Buscar memoria por Session_ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable — Buscar memoria por Session_ID": {
+      "main": [
+        [
+          {
+            "node": "Memoria — Normalizar contexto persistente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria — Normalizar contexto persistente": {
+      "main": [
+        [
+          {
+            "node": "AI Agent — Manager integraciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model — Manager": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent — Manager integraciones",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent — Manager integraciones": {
+      "main": [
+        [
+          {
+            "node": "Normalizar salida del Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar salida del Manager": {
+      "main": [
+        [
+          {
+            "node": "Set — Payload mínimo integraciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set — Payload mínimo integraciones": {
+      "main": [
+        [
+          {
+            "node": "HubSpot — Look up contacto por email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot — Look up contacto por email": {
+      "main": [
+        [
+          {
+            "node": "IF — ¿Existe contacto CRM?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — ¿Existe contacto CRM?": {
+      "main": [
+        [
+          {
+            "node": "HubSpot — Update contacto existente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HubSpot — Create contacto nuevo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot — Update contacto existente": {
+      "main": [
+        [
+          {
+            "node": "Set — Payload limpio Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot — Create contacto nuevo": {
+      "main": [
+        [
+          {
+            "node": "Set — Payload limpio Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set — Payload limpio Slack": {
+      "main": [
+        [
+          {
+            "node": "Slack — Notificar operaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack — Notificar operaciones": {
+      "main": [
+        [
+          {
+            "node": "Gmail — Create Draft respuesta HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail — Create Draft respuesta HITL": {
+      "main": [
+        [
+          {
+            "node": "Resultado — Auditoría Módulo 4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f94ad375-4292-417b-a14b-68c631ec1e2c",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "project": "Ticketing Cultural AI",
+    "module": "4",
+    "privacy": "fictitious-academic-data"
+  },
+  "tags": []
+}
