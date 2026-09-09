@@ -1,0 +1,148 @@
+{
+  "name": "worker1_venta_cultural_paredes_alexis",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        0
+      ],
+      "id": "9f2d1bd2-7154-456c-9dc0-e14fba0e1b5c",
+      "name": "Execute Workflow Trigger — Entrada Worker Venta"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst message = String(input.user_message || input.message || '').toLowerCase();\nconst eventName = input.event_context?.event_name || null;\n\n// Lista ficticia de eventos para la entrega académica.\nconst events = [\n  {\n    event_name: 'Noche de Teatro Independiente',\n    event_date: '2026-09-12',\n    event_time: '20:30',\n    price: 12000,\n    currency: 'ARS',\n    availability: 'disponible',\n    purchase_channel: 'boletería web'\n  },\n  {\n    event_name: 'Ciclo de Jazz en Sala',\n    event_date: '2026-09-22',\n    event_time: '20:00',\n    price: 0,\n    currency: 'ARS',\n    availability: 'entrada gratuita con reserva',\n    purchase_channel: 'reserva online'\n  },\n  {\n    event_name: 'Taller de Movimiento Escénico',\n    event_date: '2026-10-05',\n    event_time: '18:00',\n    price: 18000,\n    currency: 'ARS',\n    availability: 'últimos lugares',\n    purchase_channel: 'formulario de inscripción'\n  }\n];\n\nlet selected = null;\nif (eventName) {\n  selected = events.find(e => e.event_name.toLowerCase().includes(String(eventName).toLowerCase()));\n}\nif (!selected) {\n  selected = events.find(e => message.includes(e.event_name.toLowerCase().split(' ')[0]));\n}\n\nlet response;\nif (selected) {\n  const priceText = selected.price === 0 ? 'entrada gratuita con reserva' : `$${selected.price.toLocaleString('es-AR')} ${selected.currency}`;\n  response = `Para ${selected.event_name}, la función figura el ${selected.event_date} a las ${selected.event_time}. Valor: ${priceText}. Disponibilidad: ${selected.availability}. Canal sugerido: ${selected.purchase_channel}.`;\n} else {\n  response = 'Tenemos eventos culturales con venta o reserva activa. Para informar precio exacto necesito el nombre de la función, fecha o actividad de interés.';\n}\n\nreturn [{\n  json: {\n    status: 'success',\n    worker: 'worker_venta_cultural',\n    intent: input.intent || 'VENTA',\n    request_id: input.request_id || null,\n    session_id: input.session_id || null,\n    response,\n    data: {\n      matched_event: selected,\n      available_events_count: events.length\n    },\n    requires_human: false,\n    next_action: selected ? 'responder_consulta_comercial' : 'solicitar_evento_o_fecha',\n    error: null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        0
+      ],
+      "id": "66d69a80-e6d1-49a7-91fa-9dc635f2ccf4",
+      "name": "Worker Venta — Resolver consulta comercial"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2c13f5f-68c3-4aaa-bed0-e05909ca9379",
+              "name": "status",
+              "value": "={{ $json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "e25c65cd-5f05-4be7-be7d-ac4020ff7e6e",
+              "name": "worker",
+              "value": "={{ $json.worker }}",
+              "type": "string"
+            },
+            {
+              "id": "a429bb6a-f8f2-4895-ae09-906302a05ad7",
+              "name": "intent",
+              "value": "={{ $json.intent }}",
+              "type": "string"
+            },
+            {
+              "id": "d3701ca4-c4e2-4aaa-b106-c9dae5bbb6d7",
+              "name": "request_id",
+              "value": "={{ $json.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d77218b6-cc6a-4ef9-9693-362aa10cb231",
+              "name": "session_id",
+              "value": "={{ $json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5f92a16d-66e6-418f-ac03-22c72a96a7e6",
+              "name": "response",
+              "value": "={{ $json.response }}",
+              "type": "string"
+            },
+            {
+              "id": "5c82d404-5844-47ad-be8c-03107269b48d",
+              "name": "requires_human",
+              "value": "={{ $json.requires_human }}",
+              "type": "boolean"
+            },
+            {
+              "id": "dbd76f18-f47f-46f6-b382-c21ef8d6ca3c",
+              "name": "next_action",
+              "value": "={{ $json.next_action }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        80,
+        0
+      ],
+      "id": "ba3bc59c-7695-4070-87e6-76e2ffa913d4",
+      "name": "Worker Venta — Salida JSON limpia"
+    },
+    {
+      "parameters": {
+        "content": "## Worker 1 — Venta Cultural\nSub-workflow independiente. Recibe un contrato JSON mínimo desde el Manager y responde consultas previas a la compra: precios, fechas, disponibilidad y canales de adquisición.",
+        "height": 220,
+        "width": 620,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -260
+      ],
+      "id": "e5c66bbf-b57d-4cec-a74f-2e5ad879314b",
+      "name": "Nota — Worker Venta"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger — Entrada Worker Venta": {
+      "main": [
+        [
+          {
+            "node": "Worker Venta — Resolver consulta comercial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker Venta — Resolver consulta comercial": {
+      "main": [
+        [
+          {
+            "node": "Worker Venta — Salida JSON limpia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true
+  },
+  "versionId": "5f2dc5e0-790f-4e68-ab48-787f3e55cb54",
+  "meta": {
+    "description": "Módulo 2: Worker de venta cultural para consultas previas a la compra de entradas."
+  },
+  "tags": []
+}

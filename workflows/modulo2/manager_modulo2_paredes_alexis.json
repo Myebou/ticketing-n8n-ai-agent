@@ -1,0 +1,877 @@
+{
+  "name": "manager_modulo2_paredes_alexis",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "modulo2-ticketing-manager",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -980,
+        0
+      ],
+      "id": "2bfd42f9-029c-49a1-9e4f-a2bab9885920",
+      "name": "Trigger — Entrada Manager Ticketing",
+      "webhookId": "modulo2-ticketing-manager"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || {};\nconst message = String(body.message || body.text || body.input || '').trim();\nconst orderId = body.order?.order_id || body.order_id || null;\n\nreturn [{ json: {\n  request_id: body.request_id || `MOD2-${Date.now()}`,\n  session_id: body.session_id || body.phone || body.email || 'session-demo-mod2',\n  channel: body.channel || 'postman',\n  user_message: message,\n  event_context: {\n    event_name: body.event?.event_name || body.event_name || null,\n    event_date: body.event?.event_date || body.event_date || null,\n    order_id_masked: orderId ? `ORD-***${String(orderId).slice(-3)}` : null\n  },\n  control: {\n    source_workflow: 'manager_modulo2_paredes_alexis',\n    data_minimization: true,\n    raw_payload_forwarded_to_worker: false\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -740,
+        0
+      ],
+      "id": "475c8a57-2f48-48b7-bc0b-f01dc45db4e8",
+      "name": "Determinístico — Normalizar entrada mínima"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_message }}",
+        "options": {
+          "systemMessage": "# ROL\nSos un orquestador de atención para ticketing cultural. Tu única tarea es clasificar la intención del mensaje y decidir el área de negocio.\n\n# TAXONOMÍA CERRADA\nRespondé únicamente una de estas palabras: VENTA, POSTVENTA o RECLAMO.\n\n# VENTA\nUsá VENTA cuando la persona pregunta antes de comprar: precios, lista de eventos, cartelera, fechas, horarios, formas de pago, disponibilidad, cómo comprar o ubicación de la sala.\n\n# POSTVENTA\nUsá POSTVENTA cuando la persona ya compró y necesita información o seguimiento sin expresar disconformidad grave: dónde ver su entrada, cómo consultar su QR, cómo funciona una política, cómo pedir factura o cómo solicitar revisión.\n\n# RECLAMO\nUsá RECLAMO cuando la persona manifiesta un problema, incumplimiento o disconformidad: pagó y no recibió entrada, QR inválido, cobro incorrecto, devolución exigida, evento cancelado/suspendido, acceso denegado o queja formal.\n\n# REGLAS\nNo resuelvas la consulta. No expliques. No uses JSON. No agregues puntuación. No uses lenguaje inclusivo. Si hay duda entre POSTVENTA y RECLAMO, priorizá RECLAMO cuando exista problema o riesgo económico.",
+          "maxIterations": 5,
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -440,
+        0
+      ],
+      "id": "02f62c07-98a4-4337-a632-89f0f62875e2",
+      "name": "AI Agent — Orquestador VENTA POSTVENTA RECLAMO",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        260
+      ],
+      "id": "774c2740-ab60-4ab3-8242-59037206bcde",
+      "name": "OpenAI Chat Model — Router",
+      "credentials": {
+        "openAiApi": {
+          "id": "REEMPLAZAR_CREDENCIAL_OPENAI",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.session_id || $json.request_id || 'manager-ticketing-demo' }}",
+        "contextWindowLength": 5
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -340,
+        260
+      ],
+      "id": "017a7377-da76-46a5-aaf3-44aab84f4eff",
+      "name": "Simple Memory — Manager"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a7fb19b5-a183-4082-bf4d-e4b9c48e48a4",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "VENTA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "VENTA"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "24b556aa-9551-4b12-985d-a4836f7c8d7d",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "POSTVENTA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "POSTVENTA"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3d5170aa-e6f4-4a37-9065-5047e87eb520",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "RECLAMO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "RECLAMO"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -140,
+        0
+      ],
+      "id": "58a4475a-ae5f-4e67-a6dc-2ac2ea9278b8",
+      "name": "Switch — Enrutamiento cerrado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "35929ded-d892-44fe-8dab-a56cfda6b659",
+              "name": "request_id",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ef712c26-a2f3-4192-8b8c-6d79f0b3c582",
+              "name": "session_id",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "05c537cd-db83-4845-8b23-80f71231879a",
+              "name": "intent",
+              "value": "VENTA",
+              "type": "string"
+            },
+            {
+              "id": "b344cb6b-1592-4060-96d1-d223f6549e62",
+              "name": "user_message",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.user_message }}",
+              "type": "string"
+            },
+            {
+              "id": "a037e905-a296-48e9-9972-5e91319cf039",
+              "name": "event_context",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.event_context }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        160,
+        -240
+      ],
+      "id": "4c4b1980-02e3-42f4-a170-aa5f4a6a0b48",
+      "name": "Set — Contrato mínimo Worker Venta"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "REEMPLAZAR_ID_WORKER_VENTA",
+          "mode": "list",
+          "cachedResultName": "worker1_venta_cultural_paredes_alexis"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $json.request_id }}",
+            "session_id": "={{ $json.session_id }}",
+            "intent": "={{ $json.intent }}",
+            "user_message": "={{ $json.user_message }}",
+            "event_context": "={{ $json.event_context }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "user_message",
+              "displayName": "user_message",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "event_context",
+              "displayName": "event_context",
+              "type": "object",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        440,
+        -240
+      ],
+      "id": "639bcdc4-e3bc-4f67-b23b-71c1f94bd9d9",
+      "name": "Execute Workflow — Worker Venta"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ec176241-c773-48b7-8c8b-c28922853ada",
+              "name": "request_id",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "38cc9f64-9c7c-4143-b598-6001b6006dee",
+              "name": "session_id",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "04bea6f6-3101-47fa-9822-5d9299be5b3f",
+              "name": "intent",
+              "value": "POSTVENTA",
+              "type": "string"
+            },
+            {
+              "id": "2bf5884b-b83c-447a-827b-4405ed8b192e",
+              "name": "user_message",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.user_message }}",
+              "type": "string"
+            },
+            {
+              "id": "11c430e9-e780-4542-a596-33ad573aa4be",
+              "name": "event_context",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.event_context }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        160,
+        0
+      ],
+      "id": "d979ecfd-8757-43cf-bc40-f23bcb849d67",
+      "name": "Set — Contrato mínimo Worker Postventa"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "REEMPLAZAR_ID_WORKER_POSTVENTA",
+          "mode": "list",
+          "cachedResultName": "worker2_postventa_reclamos_paredes_alexis"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $json.request_id }}",
+            "session_id": "={{ $json.session_id }}",
+            "intent": "={{ $json.intent }}",
+            "user_message": "={{ $json.user_message }}",
+            "event_context": "={{ $json.event_context }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "user_message",
+              "displayName": "user_message",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "event_context",
+              "displayName": "event_context",
+              "type": "object",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        440,
+        0
+      ],
+      "id": "ff6f02bf-37cf-44bc-9096-310bd3350329",
+      "name": "Execute Workflow — Worker Postventa"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c254bdb2-0d40-4d5a-9749-28d946b05882",
+              "name": "request_id",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "04e7aa46-e3b9-4530-801c-70f090e665dc",
+              "name": "session_id",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "661992e3-6b59-45e0-ac05-65d989cd414c",
+              "name": "intent",
+              "value": "RECLAMO",
+              "type": "string"
+            },
+            {
+              "id": "a394d906-7948-4c72-8a59-32a233d3ec84",
+              "name": "user_message",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.user_message }}",
+              "type": "string"
+            },
+            {
+              "id": "5f399d2f-d8a9-4ab1-bab5-087c671036d7",
+              "name": "event_context",
+              "value": "={{ $('Determinístico — Normalizar entrada mínima').item.json.event_context }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        160,
+        240
+      ],
+      "id": "c7011a29-9586-46d6-87f0-d43767759713",
+      "name": "Set — Contrato mínimo Worker Reclamo"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "REEMPLAZAR_ID_WORKER_POSTVENTA",
+          "mode": "list",
+          "cachedResultName": "worker2_postventa_reclamos_paredes_alexis"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $json.request_id }}",
+            "session_id": "={{ $json.session_id }}",
+            "intent": "={{ $json.intent }}",
+            "user_message": "={{ $json.user_message }}",
+            "event_context": "={{ $json.event_context }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        440,
+        240
+      ],
+      "id": "9d6d5b78-dc2a-4624-9719-d37a262eaef8",
+      "name": "Execute Workflow — Worker Postventa/Reclamo"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ee6675ec-fded-488c-bf39-b187b2962e88",
+              "name": "status",
+              "value": "fallback",
+              "type": "string"
+            },
+            {
+              "id": "002bb021-4dfe-407d-bedc-131b58ff41d3",
+              "name": "worker",
+              "value": "none",
+              "type": "string"
+            },
+            {
+              "id": "78234775-b963-4713-9740-2c7ac4cf90c1",
+              "name": "intent",
+              "value": "UNKNOWN",
+              "type": "string"
+            },
+            {
+              "id": "1c1edc02-98ec-4989-8c39-6addd3ca2cc5",
+              "name": "response",
+              "value": "No pude clasificar la consulta con seguridad. El caso debe ser revisado por una persona del equipo de atención.",
+              "type": "string"
+            },
+            {
+              "id": "e13a7008-bd9c-46e5-88d4-7c43b105b3c9",
+              "name": "requires_human",
+              "value": "true",
+              "type": "boolean"
+            },
+            {
+              "id": "653bc58d-c1cd-4e50-9d78-6a1728895b02",
+              "name": "next_action",
+              "value": "revision_humana",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        160,
+        460
+      ],
+      "id": "2a9665d2-5759-4fa6-a7cb-97cbdcbb0f2e",
+      "name": "Fallback — Intención no clasificada"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json || {};\nconst original = $('Determinístico — Normalizar entrada mínima').first().json;\n\nreturn [{ json: {\n  request_id: result.request_id || original.request_id,\n  session_id: result.session_id || original.session_id,\n  status: result.status || 'unknown',\n  selected_worker: result.worker || 'none',\n  intent: result.intent || 'UNKNOWN',\n  response: result.response || 'Sin respuesta estructurada del worker.',\n  requires_human: result.requires_human ?? true,\n  next_action: result.next_action || 'revision_humana',\n  trace_log: {\n    workflow: 'manager_modulo2_paredes_alexis',\n    execution_id: $execution.id,\n    timestamp: new Date().toISOString(),\n    routing_intent: result.intent || 'UNKNOWN',\n    selected_worker: result.worker || 'none',\n    parameters_sent: {\n      request_id: original.request_id,\n      session_id: original.session_id,\n      user_message: original.user_message,\n      event_context: original.event_context\n    },\n    worker_result: result,\n    wait_for_child_to_finish: true,\n    data_minimization: true\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        0
+      ],
+      "id": "4853fb0a-f5f9-44c9-8f26-2fe89d7242ec",
+      "name": "Observabilidad — Integrar resultado worker"
+    },
+    {
+      "parameters": {
+        "sendTo": "equipo-ticketing@example.com",
+        "subject": "={{ `[M2] ${$json.intent} → ${$json.selected_worker} | ${$json.request_id}` }}",
+        "emailType": "text",
+        "message": "={{ `Resultado Manager-Worker:\n${$json.response}\n\nTrace log:\n${JSON.stringify($json.trace_log, null, 2)}` }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1020,
+        -120
+      ],
+      "id": "324ebbfb-7837-45d1-95dc-66113b83b581",
+      "name": "Gmail — Log de trazabilidad Manager",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZAR_CREDENCIAL_GMAIL",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { request_id: $json.request_id, status: $json.status, intent: $json.intent, selected_worker: $json.selected_worker, output: $json.response, requires_human: $json.requires_human, next_action: $json.next_action, trace_log: $json.trace_log } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1020,
+        120
+      ],
+      "id": "5c318fd6-9757-44ae-9af0-035a59451600",
+      "name": "Respond — Resultado Manager"
+    },
+    {
+      "parameters": {
+        "content": "## Workflow Manager — Orquestador Principal\nRecibe la consulta, normaliza datos mínimos y clasifica intención en una taxonomía cerrada: VENTA, POSTVENTA o RECLAMO.",
+        "height": 250,
+        "width": 600,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        -320
+      ],
+      "id": "6df2a77e-0550-4702-bbf1-5fcf405760d4",
+      "name": "Nota — Manager"
+    },
+    {
+      "parameters": {
+        "content": "## Handoff de Datos\nAntes de cada Execute Workflow hay un Set que evita data stuffing. Solo viajan request_id, session_id, intent, user_message y event_context. Activar Wait for child to finish en cada nodo Execute Workflow.",
+        "height": 260,
+        "width": 820,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        40,
+        -520
+      ],
+      "id": "08f3f39b-dd42-4f6a-b2ba-1aa9549ca053",
+      "name": "Nota — Handoff JSON"
+    },
+    {
+      "parameters": {
+        "content": "## Persistencia visual / auditoría\nEl Manager integra la respuesta del Worker, registra qué sub-workflow fue invocado, qué parámetros recibió y qué salida devolvió. Luego envía reporte por Gmail y responde al Webhook.",
+        "height": 240,
+        "width": 720,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        660,
+        -360
+      ],
+      "id": "a6a7a874-24cc-40f7-a4f7-c922c1901eda",
+      "name": "Nota — Observabilidad"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger — Entrada Manager Ticketing": {
+      "main": [
+        [
+          {
+            "node": "Determinístico — Normalizar entrada mínima",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determinístico — Normalizar entrada mínima": {
+      "main": [
+        [
+          {
+            "node": "AI Agent — Orquestador VENTA POSTVENTA RECLAMO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model — Router": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent — Orquestador VENTA POSTVENTA RECLAMO",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory — Manager": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent — Orquestador VENTA POSTVENTA RECLAMO",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent — Orquestador VENTA POSTVENTA RECLAMO": {
+      "main": [
+        [
+          {
+            "node": "Switch — Enrutamiento cerrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch — Enrutamiento cerrado": {
+      "main": [
+        [
+          {
+            "node": "Set — Contrato mínimo Worker Venta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set — Contrato mínimo Worker Postventa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set — Contrato mínimo Worker Reclamo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback — Intención no clasificada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set — Contrato mínimo Worker Venta": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow — Worker Venta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow — Worker Venta": {
+      "main": [
+        [
+          {
+            "node": "Observabilidad — Integrar resultado worker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set — Contrato mínimo Worker Postventa": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow — Worker Postventa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow — Worker Postventa": {
+      "main": [
+        [
+          {
+            "node": "Observabilidad — Integrar resultado worker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set — Contrato mínimo Worker Reclamo": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow — Worker Postventa/Reclamo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow — Worker Postventa/Reclamo": {
+      "main": [
+        [
+          {
+            "node": "Observabilidad — Integrar resultado worker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback — Intención no clasificada": {
+      "main": [
+        [
+          {
+            "node": "Observabilidad — Integrar resultado worker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Observabilidad — Integrar resultado worker": {
+      "main": [
+        [
+          {
+            "node": "Gmail — Log de trazabilidad Manager",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond — Resultado Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true
+  },
+  "versionId": "d3e7f532-94df-48bb-b420-3967731c1bc7",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Módulo 2: Manager-Worker para ticketing cultural con dos sub-workflows: venta y postventa/reclamos."
+  },
+  "tags": []
+}

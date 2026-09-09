@@ -1,0 +1,154 @@
+{
+  "name": "worker2_postventa_reclamos_paredes_alexis",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        0
+      ],
+      "id": "99602e75-c5e6-419a-96d8-1263a0d525b4",
+      "name": "Execute Workflow Trigger — Entrada Worker Postventa"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst msg = String(input.user_message || '').toLowerCase();\nconst intent = input.intent || 'POSTVENTA';\n\nlet caseType = input.case_type || 'postventa_general';\nif (/devoluci[oó]n|reembolso|dinero|reintegr/i.test(msg)) caseType = 'refund_request';\nelse if (/no.*lleg|qr|entrada|mail|correo/i.test(msg)) caseType = 'ticket_not_received';\nelse if (/cancelad/i.test(msg)) caseType = 'event_cancelled';\nelse if (/suspendid/i.test(msg)) caseType = 'event_suspended';\nelse if (/llegad[ao] tarde|ingreso|acceso/i.test(msg)) caseType = 'access_issue';\n\nconst policies = {\n  refund_request: {\n    response: 'Las devoluciones requieren revisión humana. El agente puede orientar sobre la política, pero no debe aprobar reembolsos ni solicitar datos bancarios en la primera respuesta automática.',\n    requires_human: true,\n    next_action: 'escalar_a_boleteria'\n  },\n  ticket_not_received: {\n    response: 'Si la entrada no llegó, se recomienda revisar Spam, Promociones o Correo no deseado. Si el problema continúa, el equipo de boletería debe revisar el pedido asociado antes de confirmar reenvío.',\n    requires_human: true,\n    next_action: 'revisar_pedido_en_boleteria'\n  },\n  event_cancelled: {\n    response: 'Ante una función cancelada, la organización puede ofrecer reembolso, custodia de reserva o reprogramación. La opción aplicable debe ser confirmada por el equipo humano.',\n    requires_human: true,\n    next_action: 'confirmar_alternativa_oficial'\n  },\n  event_suspended: {\n    response: 'Ante una suspensión, la alternativa depende de si la actividad inició o no. Puede corresponder reembolso total, parcial, cupón, custodia o reprogramación, siempre sujeto a revisión humana.',\n    requires_human: true,\n    next_action: 'evaluar_causa_suspension'\n  },\n  access_issue: {\n    response: 'El ingreso depende de la política de sala, horario de función y condiciones del evento. Si hubo llegada tarde, QR inválido o accesibilidad, corresponde revisión humana.',\n    requires_human: true,\n    next_action: 'derivar_a_sala_o_boleteria'\n  },\n  postventa_general: {\n    response: 'La consulta corresponde a postventa. Se puede orientar con datos generales, pero cualquier cambio, devolución, reenvío o validación de acceso requiere revisión del equipo.',\n    requires_human: false,\n    next_action: 'orientar_y_solicitar_datos_minimos'\n  }\n};\n\nconst selected = policies[caseType] || policies.postventa_general;\n\nreturn [{\n  json: {\n    status: 'success',\n    worker: 'worker_postventa_reclamos_ticketing',\n    intent,\n    case_type: caseType,\n    request_id: input.request_id || null,\n    session_id: input.session_id || null,\n    response: selected.response,\n    requires_human: selected.requires_human,\n    next_action: selected.next_action,\n    governance: {\n      no_refund_approval: true,\n      no_ticket_resend_confirmation: true,\n      no_sensitive_data_request: true,\n      fallback_available: true\n    },\n    error: null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        0
+      ],
+      "id": "2cc54db9-9b11-4f9b-8dd0-0719b6e20b54",
+      "name": "Worker Postventa — Aplicar política ticketing"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "141fa28e-edd9-471e-a8fe-cfa9a8f4f6f9",
+              "name": "status",
+              "value": "={{ $json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "f2893a3d-2954-4b93-89f6-eb6f5f4917f2",
+              "name": "worker",
+              "value": "={{ $json.worker }}",
+              "type": "string"
+            },
+            {
+              "id": "2bc2de67-01cb-4bfc-8b70-4f59efc2947e",
+              "name": "intent",
+              "value": "={{ $json.intent }}",
+              "type": "string"
+            },
+            {
+              "id": "1fde8ef4-c88c-41b1-a9fd-e75c21721543",
+              "name": "case_type",
+              "value": "={{ $json.case_type }}",
+              "type": "string"
+            },
+            {
+              "id": "cc63c12b-09e5-4881-9974-f7fd2ab068d5",
+              "name": "request_id",
+              "value": "={{ $json.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "163ac162-5645-4f89-a2c7-fa6472e8bff7",
+              "name": "session_id",
+              "value": "={{ $json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "0c3819ef-5ddf-4ea4-97ce-cd33a723c9d0",
+              "name": "response",
+              "value": "={{ $json.response }}",
+              "type": "string"
+            },
+            {
+              "id": "b93919a2-0653-43ba-bd82-17faed5e2e2b",
+              "name": "requires_human",
+              "value": "={{ $json.requires_human }}",
+              "type": "boolean"
+            },
+            {
+              "id": "b23f0323-315a-49cd-9a2b-a1b89d754151",
+              "name": "next_action",
+              "value": "={{ $json.next_action }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        100,
+        0
+      ],
+      "id": "95ed0c15-d437-4874-96e3-0eb0880d6d8e",
+      "name": "Worker Postventa — Salida JSON limpia"
+    },
+    {
+      "parameters": {
+        "content": "## Worker 2 — Postventa / Reclamos Ticketing\nSub-workflow independiente. Resuelve orientación posterior a la compra: entrada no recibida, QR, devoluciones, cancelaciones, suspensiones, acceso y escalamiento humano.",
+        "height": 220,
+        "width": 680,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -260
+      ],
+      "id": "654a82e6-0256-46cf-93a7-f5911d241e27",
+      "name": "Nota — Worker Postventa/Reclamos"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger — Entrada Worker Postventa": {
+      "main": [
+        [
+          {
+            "node": "Worker Postventa — Aplicar política ticketing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker Postventa — Aplicar política ticketing": {
+      "main": [
+        [
+          {
+            "node": "Worker Postventa — Salida JSON limpia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true
+  },
+  "versionId": "4f136ee3-ffc0-4fd2-af39-43de93d98b71",
+  "meta": {
+    "description": "Módulo 2: Worker de postventa y reclamos para política de ticketing cultural."
+  },
+  "tags": []
+}
