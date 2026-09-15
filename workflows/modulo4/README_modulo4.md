@@ -1,4 +1,4 @@
-# Módulo 4 — Integraciones Avanzadas v1
+# Módulo 4 — Integraciones Avanzadas
 
 Archivo principal: `checkpoint4_alexis_paredes.json`
 
